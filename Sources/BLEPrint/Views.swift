@@ -58,14 +58,15 @@ struct ContentView: View {
                             Text("Length along feed"); num($m.feedMM).disabled(m.fitActive)
                         }
                         GridRow {
-                            Text("Gap"); num($m.gapMM).disabled(!m.brand.usesGapSpeed)
+                            Text("Gap"); num($m.gapMM).disabled(!m.brand.usesGap)
+                                .help("Set by the printer from the loaded label roll.")
                             Text("Density (\(m.brand.densityRange.lowerBound)-\(m.brand.densityRange.upperBound))")
                             Stepper(value: $m.density, in: m.brand.densityRange) { Text("\(m.density)").monospacedDigit().frame(width: 28) }
                         }
                         GridRow {
                             Text("Speed")
                             Stepper(value: $m.speed, in: 1...6) { Text("\(m.speed)").monospacedDigit().frame(width: 28) }
-                                .disabled(!m.brand.usesGapSpeed)
+                                .disabled(!m.brand.usesSpeed)
                             Text("Copies / row")
                             Stepper(value: $m.copies, in: 1...99) { Text("\(m.copies)").monospacedDigit().frame(width: 28) }
                         }

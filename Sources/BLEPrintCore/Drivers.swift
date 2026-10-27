@@ -2,7 +2,7 @@ import CoreBluetooth
 import Foundation
 
 public struct PrintParams {
-    public var headMM = 15.0, feedMM = 40.0, gapMM = 2.0
+    public var headMM = 14.0, feedMM = 40.0, gapMM = Nelko.defaultGapMM
     public var density = 10, speed = 3, copies = 1
     public var continuous = false, fitLength = false
     public init() {}
@@ -43,6 +43,8 @@ public final class NelkoDriver: PrinterDriver {
     let device: FoundDevice
     let ble = BLE.shared
     var writeChar: CBCharacteristic?
+    private let lock = NSLock()
+    private var rx = [UInt8]()
 
     init(_ d: FoundDevice) { device = d }
 
@@ -52,7 +54,10 @@ public final class NelkoDriver: PrinterDriver {
             throw PrinterError.message("This doesn't look like a Nelko P21 (service FF00 not found). Found: \(ble.discoveredSummary)")
         }
         writeChar = w
-        ble.onData = { _ in }
+        ble.onData = { [weak self] d in
+            guard let self else { return }
+            self.lock.lock(); self.rx += d; self.lock.unlock()
+        }
         ble.subscribe(n)
         return "\(label) · MTU \(ble.maxWrite + 3)"
     }
@@ -70,15 +75,57 @@ public final class NelkoDriver: PrinterDriver {
         }
     }
 
+    private func clearRx() { lock.lock(); rx = []; lock.unlock() }
+    private func firstRx() -> UInt8? { lock.lock(); defer { lock.unlock() }; return rx.first }
+
+    /// One status byte from ESC ! ?, or nil if the printer doesn't answer.
+    public func status(timeout: Double = 1.0) async throws -> UInt8? {
+        clearRx()
+        try await send(Nelko.statusQuery)
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if let first = firstRx() { return first }
+            await sleep(ms: 20)
+        }
+        return nil
+    }
+
+    /// Wait until the printer has finished the labels already sent. Polls ESC ! ? when the printer
+    /// answers it; otherwise waits about as long as `labels` labels take to print.
+    func waitUntilIdle(labels: Int, _ p: PrintParams) async throws {
+        let estimate = max(1.2, p.feedMM / 25 + 0.9) * Double(max(1, labels))
+        guard var s = try await status() else {
+            await sleep(ms: Int(estimate * 1000))
+            return
+        }
+        let deadline = Date().addingTimeInterval(estimate + 30)
+        while Nelko.statusBusy(s) && Date() < deadline {
+            await sleep(ms: 300)
+            s = try await status() ?? 0
+        }
+        if let e = Nelko.statusError(s) { throw PrinterError.message(e) }
+    }
+
     public func printLabels(_ images: [GrayImage], _ p: PrintParams, log: @escaping Log, progress: @escaping Progress,
                             between: Between?) async throws {
-        progress(0, images.count)
-        for (i, img) in images.enumerated() {
-            try await send(Nelko.tsplJob(img, headMM: p.headMM, feedMM: p.feedMM, gapMM: p.gapMM, density: p.density, speed: p.speed))
-            progress(i + 1, images.count)
-            log("  printed \(i + 1)/\(images.count)")
-            await sleep(ms: Int(max(1.2, p.feedMM / 25 + 0.9) * 1000))
+        // Runs of identical labels (copies) become one job with PRINT n, like the vendor app.
+        var runs: [(img: GrayImage, count: Int)] = []
+        for img in images {
+            if let last = runs.last, last.img == img { runs[runs.count - 1].count += 1 } else { runs.append((img, 1)) }
         }
+        progress(0, images.count)
+        var done = 0, previous = 0
+        for run in runs {
+            if done > 0 { try await waitUntilIdle(labels: previous, p) }
+            try await send(Nelko.tsplJob(run.img, headMM: p.headMM, feedMM: p.feedMM, gapMM: p.gapMM,
+                                         density: p.density, speed: p.speed, copies: run.count))
+            done += run.count
+            previous = run.count
+            progress(done, images.count)
+            log(run.count > 1 ? "  sent \(run.count) copies (\(done)/\(images.count))" : "  sent \(done)/\(images.count)")
+        }
+        try await waitUntilIdle(labels: previous, p)
+        try await send(Nelko.allEnd)
     }
 }
 

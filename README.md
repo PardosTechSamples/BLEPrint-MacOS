@@ -21,7 +21,7 @@ app's printer encoders are checked byte-for-byte against the Python ones.
 
 | Printer | Detected by | Protocol |
 |---|---|---|
-| Nelko P21 | MAC prefix `BE:C0:11`, name `P21…`, service `FF00` | TSPL over BLE, 96-dot (12 mm) head, 203 dpi |
+| Nelko P21 | MAC prefix `BE:C0:11`, name `P21…`, service `FF00` | TSPL over BLE, 96-dot (12 mm) head, 203 dpi; label size and gap come from the loaded roll |
 | Supvan E10 / T10 | OUI `A4:93:40` (Beijing Supvan), name `T0xxx…`, service `E0FF…` | `7E 5A` frames + LZMA bitmaps, 96-dot head |
 
 > “Nelko”, “P21”, “Supvan”, “Katasymbol” and “E10” are trademarks of their respective owners, used
@@ -56,8 +56,8 @@ To check the encoders against the Python implementation, clone
 .build/debug/bleprint-selftest | python3 scripts/compare_python.py /path/to/BLEPrint
 ```
 
-`scripts/scan.command` and `scripts/e10.command` exercise the Bluetooth layer from Terminal (scan, and
-a test print on a Supvan E10).
+`scripts/scan.command`, `scripts/e10.command` and `scripts/nelko_csv.command` exercise the Bluetooth
+layer from Terminal (scan, a test print on a Supvan E10, and printing a CSV on a Nelko P21).
 
 ## Layout
 

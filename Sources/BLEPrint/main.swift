@@ -19,7 +19,7 @@ struct BLEPrintApp: App {
                         + "The Supvan job encoding follows the MIT-licensed supvan-katasymbol-printer-web-ui project "
                         + "(© Katasymbol Web contributors). LZMA via liblzma (0BSD). MIT License.")
                     NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "BLEPrint",
-                                                                .applicationVersion: "0.3.0 (Swift)", .credits: credits])
+                                                                .applicationVersion: "0.3.1 (Swift)", .credits: credits])
                 }
             }
         }

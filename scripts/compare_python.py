@@ -45,4 +45,7 @@ import asyncio
 cap = Cap(); hd, fd = min(round(15 * 203 / 25.4), 96), round(40 * 203 / 25.4)
 asyncio.run(cap.print_image(pattern(hd, fd, lambda x, y: (x + y * 3) % 11 < 4), 15.0, 40.0, gap_mm=2.0, density=10, speed=3))
 check("nelko TSPL job", swift["tspl"], cap.sent.hex())
+cap3 = Cap(); hd14 = min(round(14 * 203 / 25.4), 96)
+asyncio.run(cap3.print_image(pattern(hd14, fd, lambda x, y: (x + y * 3) % 11 < 4), 14.0, 40.0, density=10, speed=3, copies=3))
+check("nelko TSPL job, 3 copies", swift["tspl_copies"], cap3.sent.hex())
 print("ALL MATCH" if ok else "MISMATCHES FOUND")

@@ -26,6 +26,7 @@ public enum CSV {
             } else { field.append(c) }
             i += 1
         }
+        records = records.map { $0.map { $0.trimmingCharacters(in: .whitespaces) } }   // "Names, Model"
         guard let header = records.first else { return ([], []) }
         let rows = records.dropFirst().map { r in
             Dictionary(header.enumerated().map { ($1, $0 < r.count ? r[$0] : "") }, uniquingKeysWith: { a, _ in a })

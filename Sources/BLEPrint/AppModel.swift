@@ -31,7 +31,7 @@ final class AppModel: ObservableObject {
     // settings
     @Published var headMM = 14.0 { didSet { refreshPreview() } }
     @Published var feedMM = 40.0 { didSet { refreshPreview() } }
-    @Published var gapMM = 2.0
+    @Published var gapMM = Nelko.defaultGapMM          // P21 14 x 40 mm rolls have a 5 mm gap
     @Published var density = 10
     @Published var speed = 3
     @Published var copies = 1

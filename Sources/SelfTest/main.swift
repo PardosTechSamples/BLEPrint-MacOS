@@ -53,6 +53,39 @@ if CommandLine.arguments.contains("--scan") || CommandLine.arguments.contains("-
     exit(0)
 }
 
+if let i = CommandLine.arguments.firstIndex(of: "--nelko-csv"), i + 1 < CommandLine.arguments.count {
+    // Same as the app's "Print ALL rows" on a Nelko: CSV -> template -> one label per row.
+    let sem = DispatchSemaphore(value: 0)
+    Task {
+        do {
+            let csv = CSV.parse(try String(contentsOfFile: CommandLine.arguments[i + 1], encoding: .utf8))
+            print("columns:", csv.columns, "rows:", csv.rows.count)
+            let tmpl = "{Names}\n{Model}"
+            let images = csv.rows.map { row -> GrayImage in
+                var t = tmpl
+                for c in csv.columns { t = t.replacingOccurrences(of: "{\(c)}", with: row[c] ?? "") }
+                print("  label:", t.replacingOccurrences(of: "\n", with: " / "))
+                return Render.nelkoText(t, headMM: 14, feedMM: 40)
+            }
+            let found = try await BLE.shared.scan(seconds: 8)
+            guard let dev = found.first(where: { $0.brand == .nelko }), let drv = makeDriver(for: dev) as? NelkoDriver else {
+                print("NO NELKO FOUND"); sem.signal(); return
+            }
+            print("connected:", try await drv.connect(log: { print($0) }), "|", dev.reason)
+            let st = try await drv.status()
+            print("status query ESC!? ->", st.map { String(format: "0x%02X", $0) } ?? "no reply (will use timed waits)")
+            var p = PrintParams(); p.headMM = 14; p.feedMM = 40; p.density = 10; p.speed = 3
+            let t0 = Date()
+            try await drv.printLabels(images, p, log: { print($0) }, progress: { print("progress \($0)/\($1)") }, between: nil)
+            print(String(format: "PRINT DONE in %.1f s", Date().timeIntervalSince(t0)))
+            drv.disconnect()
+        } catch { print("ERROR:", error.localizedDescription) }
+        sem.signal()
+    }
+    while sem.wait(timeout: .now() + 0.05) == .timedOut { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+    exit(0)
+}
+
 if let i = CommandLine.arguments.firstIndex(of: "--nelko-ink") {
     let t = i + 1 < CommandLine.arguments.count ? CommandLine.arguments[i + 1] : "OMG"
     let img = Render.nelkoText(t, headMM: 14, feedMM: 40)
@@ -66,6 +99,7 @@ let job = Supvan.encodeJob([Supvan.raster(label1), Supvan.raster(label2)], densi
 var fixed = [UInt8](repeating: 0, count: 4000)
 for i in 0..<4000 { fixed[i] = UInt8((i * 31 + i / 7) % 251) }
 let nelkoImg = pattern(Nelko.printDots(15), Nelko.dots(40)) { x, y in (x + y * 3) % 11 < 4 }
+let nelkoImg14 = pattern(Nelko.printDots(14), Nelko.dots(40)) { x, y in (x + y * 3) % 11 < 4 }
 
 let out: [String: Any] = [
     "cmd": [hex(Supvan.commandFrame(0x11)), hex(Supvan.commandFrame(0x5C, 512, 3)), hex(Supvan.commandFrame(0xC9, 110))],
@@ -77,6 +111,7 @@ let out: [String: Any] = [
     "job_per_label": job.perLabel,
     "job_back": job.backFrames,
     "tspl": hex(Nelko.tsplJob(nelkoImg, headMM: 15, feedMM: 40, gapMM: 2.0, density: 10, speed: 3)),
+    "tspl_copies": hex(Nelko.tsplJob(nelkoImg14, headMM: 14, feedMM: 40, gapMM: 5.0, density: 10, speed: 3, copies: 3)),
 ]
 let data = try JSONSerialization.data(withJSONObject: out, options: [.sortedKeys])
 FileHandle.standardOutput.write(data)

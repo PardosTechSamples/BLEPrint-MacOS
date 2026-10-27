@@ -2,7 +2,7 @@
 # Build BLEPrint.app (release, Apple Silicon + Intel when possible) into dist/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="${VERSION:-0.3.0}"
+VERSION="${VERSION:-0.3.1}"
 ARCHS=(--arch arm64 --arch x86_64)
 swift build -c release --product BLEPrint "${ARCHS[@]}" 2>/dev/null || { ARCHS=(); swift build -c release --product BLEPrint; }
 BIN="$(swift build -c release --product BLEPrint "${ARCHS[@]}" --show-bin-path)/BLEPrint"

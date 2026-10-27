@@ -9,7 +9,9 @@ public enum Brand: String, CaseIterable, Identifiable {
     public var supportsContinuous: Bool { self == .supvan }
     public var supportsFitLength: Bool { self == .supvan }
     public var pauseBetweenLabels: Bool { self == .supvan }
-    public var usesGapSpeed: Bool { self == .nelko }
+    /// Gap comes from the printer's own label setup on both printers; only the Nelko takes a speed.
+    public var usesGap: Bool { false }
+    public var usesSpeed: Bool { self == .nelko }
     public var densityRange: ClosedRange<Int> { self == .nelko ? 0...15 : 1...7 }
     public var defaultDensity: Int { self == .nelko ? 10 : 4 }
     public var fixedHeadMM: Double? { self == .supvan ? 12 : nil }

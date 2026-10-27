@@ -78,10 +78,11 @@ struct ContentView: View {
                         Picker("Print as", selection: $m.mode) {
                             ForEach(PrintMode.allCases) { Text($0.title).tag($0) }
                         }.pickerStyle(.segmented).help("QR codes scan best with short text, such as a URL or SKU.")
-                        Toggle("Continuous print (all labels in one job)", isOn: Binding(get: { m.continuousActive }, set: { m.continuous = $0 }))
-                            .disabled(!m.brand.supportsContinuous)
-                        Text(m.brand.continuousNote).font(.caption).foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if m.brand.supportsContinuous {      // Supvan continuous tape only
+                            Toggle("Continuous print (all labels in one job)", isOn: Binding(get: { m.continuousActive }, set: { m.continuous = $0 }))
+                            Text(m.brand.continuousNote).font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }.padding(6)
                 }
                 GroupBox("Template — click a column to insert {Column}") {

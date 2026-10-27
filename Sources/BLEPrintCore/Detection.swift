@@ -15,10 +15,11 @@ public enum Brand: String, CaseIterable, Identifiable {
     public var densityRange: ClosedRange<Int> { self == .nelko ? 0...15 : 1...7 }
     public var defaultDensity: Int { self == .nelko ? 10 : 4 }
     public var fixedHeadMM: Double? { self == .supvan ? 12 : nil }
+    /// Only for continuous-tape printers (Supvan); the Nelko P21 prints individual die-cut labels.
     public var continuousNote: String {
-        self == .nelko
-            ? "Continuous printing is disabled on the Nelko P21 until it has been tested."
-            : "Send every label in one job so they print back to back on the tape. Without it, BLEPrint pauses after each label so you can cut it."
+        self == .supvan
+            ? "Send every label in one job so they print back to back on the tape. Without it, BLEPrint pauses after each label so you can cut it."
+            : ""
     }
 }
 

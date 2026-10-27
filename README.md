@@ -16,8 +16,8 @@ app's printer encoders are checked byte-for-byte against the Python ones.
   row or the whole file.
 - **Print as** text, QR code + text, or QR code only.
 - **Fit length to text** (Supvan E10): labels as long as the text, printed edge to edge.
-- **Continuous print** (Supvan E10): every label in one job. Without it, BLEPrint pauses after each
-  label so you can cut it. Disabled on the Nelko P21 until it has been tested there.
+- **Continuous print** (Supvan E10, continuous tape): every label in one job. Without it, BLEPrint
+  pauses after each label so you can cut it. The Nelko P21 prints individual die-cut labels.
 
 | Printer | Detected by | Protocol |
 |---|---|---|
